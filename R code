@@ -1,0 +1,50 @@
+library(readxl)
+a <- read_excel("rootman 1 winter 19.xlsx")
+a <- as.data.frame(a)
+head(a)
+
+#Remove columns 1:6
+b <- a[,-c(1:6)]
+
+#Change NAs to 0
+b[is.na(b)] <- 0
+b <- as.data.frame(b)
+
+#Create 1000x1000x59 array of 0s
+array0 <- array(rep(0, 1000*1000*59), dim=c(1000,1000,59))
+for (i in seq(1,57,by=2)) {
+  for (j in 1:nrow(b)) {
+  array0[as.numeric(b[j,i]), as.numeric(b[j,i+1]), j] <- 1
+  }
+}
+
+# Add up all matricies in the array
+final_array <- matrix(rep(0,1000*1000), 1000, 1000)
+for (i in 1:59) {
+  final_array <- final_array + array0[,,i]
+}
+
+
+#Average matrix
+new_final_array <- final_array/59
+
+#Distance matrix
+dist_mat <- as.matrix(dist(new_final_array))
+
+#Plot points (it's upside down)
+x <- 1:1000
+y <- 1:1000
+plot(x,y, type="n")
+#plot non 0s 
+points(which(new_final_array!=0,arr.ind = T), pch=19, cex=0.2, lwd=0.3)
+
+#Another view of the plot
+library(fields)
+image.plot(matrix((data=final_array), ncol=1000, nrow=1000))
+
+#Plot with curve using ggplot
+library(ggplot2)
+xcol <- which(new_final_array!=0,arr.ind = T)[,1]
+ycol <- which(new_final_array!=0,arr.ind = T)[,2]
+data2 <- as.data.frame(cbind(xcol, ycol))
+ggplot(data=data2, aes(x=xcol, y=ycol)) + geom_point() + stat_smooth()
