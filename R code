@@ -1,25 +1,27 @@
 library(readxl)
-a <- read_excel("rootman 1 winter 19.xlsx")
+a <- read_excel("rootman 1 winter 19 copy.xlsx")
 a <- as.data.frame(a)
 head(a) 
 
+
 #Remove columns 1:6
 b <- a[,-c(1:6)]
+
 
 #Change NAs to 0
 b[is.na(b)] <- 0
 b <- as.data.frame(b)
 
 #number of clicks
+(ncol(b) - rowSums(b==0))/2
 hist((ncol(b) - rowSums(b==0))/2, breaks=10)
 mean((ncol(b) - rowSums(b==0))/2)
 summary((ncol(b) - rowSums(b==0))/2)
 
 
 
-
 #Create 1000x1000x59 array of 0s
-array0 <- array(rep(0, 1000*1000*59), dim=c(1000,1000,59))
+array0 <- array(rep(0, 1000*1000*nrow(b)), dim=c(1000,1000,nrow(b)))
 for (i in seq(1,57,by=2)) {
   for (j in 1:nrow(b)) {
   array0[as.numeric(b[j,i]), as.numeric(b[j,i+1]), j] <- 1
@@ -28,62 +30,242 @@ for (i in seq(1,57,by=2)) {
 
 # Add up all matricies in the array
 final_array <- matrix(rep(0,1000*1000), 1000, 1000)
-for (i in 1:59) {
+for (i in 1:nrow(b)) {
   final_array <- final_array + array0[,,i]
 }
 
 
 #Average matrix
-new_final_array <- final_array/59
+new_final_array <- final_array/nrow(b)
 
-#Distance matrix
-dist_mat <- as.matrix(dist(new_final_array))
 
 #Plot points (it's upside down)
 x <- 1:1000
 y <- 1:1000
 plot(x,y, type="n")
 #plot non 0s 
-points(which(new_final_array!=0,arr.ind = T), pch=21, cex=0.4, lwd=0.3)
+points(which(new_final_array!=0,arr.ind = T), pch=21, cex=0.5, lwd=0.3)
 
-#Another view of the plot
-library(fields)
-image.plot(matrix((data=final_array), ncol=1000, nrow=1000))
-
-#Plot with curve using ggplot
-library(ggplot2)
-xcol <- which(new_final_array!=0,arr.ind = T)[,1]
-ycol <- which(new_final_array!=0,arr.ind = T)[,2]
-data2 <- as.data.frame(cbind(xcol, ycol))
-ggplot(data=data2, aes(x=xcol, y=ycol)) + geom_point() + stat_smooth()
+#Use library(Thermimage) to rotate data 
+#rotate180.matrix
 
 
-cbind(which(new_final_array>0, arr.ind = T)[,1], which(new_final_array>0, arr.ind = T)[,2])
 
-mean(new_final_array[new_final_array>0]) #mean of weights > 0
-sd(new_final_array[new_final_array>0])
-sd(final_array[final_array>0])
 
 #Fitting a model to the data
+xcol <- which(new_final_array!=0,arr.ind = T)[,1]
+ycol <- which(new_final_array!=0,arr.ind = T)[,2]
 fit2 <- lm(ycol~poly(xcol,2,raw=TRUE))
 summary(fit2)
 plot(xcol, ycol)
-xx <- seq(200,600, length=695)
-points(xx, predict(fit2, data.frame(x=xx)), col="red")
+xx <- seq(72,758, length=608)
+points(xcol, predict(fit2, data.frame(x=xx)), col="red")
+fit2
 
+fit4 <- lm(ycol~poly(xcol,4,raw=TRUE))
+summary(fit4)
+plot(xcol, ycol)
+xx <- seq(72,758, length=608)
+points(xcol, predict(fit4, data.frame(x=xx)), col="red")
+fit4
+
+
+# K-S Tests
+y_obs <- read.table("y_obs.csv")
+str(y_obs)
+y_obs <- y_obs[,1]
+
+y_exp <- read.table("y_exp.csv")
+y_exp <- y_exp[,1]
+ks.test(y_exp, y_obs, alternative = "two.sided")
+
+y_part5 <- read.table("y_obs_participant5.csv")
+y_part5 <- y_part5[,1]
+ks.test(y_exp, y_part5, alternative = "two.sided")
+
+plot.ecdf(y_exp)
+plot.ecdf(y_obs)
 
 
 #Expert
-expert_data <- read_excel("Upper eyelid excel data points/1_1.xlsx")
-expert_data <- as.data.frame(expert_data)
+expert_data1_1 <- read_excel("Upper eyelid excel data points/1_1.xlsx")
+expert_data1_1 <- as.data.frame(expert_data1_1)
 
-x <- 1:1000
-y <- 1:1000
-plot(x,y, type="n")
-#plot non 0s 
-points(which(new_final_array!=0,arr.ind = T), pch=21, cex=0.4, lwd=0.3)
-lines(expert_data[,1], expert_data[,2], col="red")
+expert_data2_1 <- read_excel("Upper eyelid excel data points/2_1.xlsx")
+expert_data2_1 <- as.data.frame(expert_data2_1)
 
-ex2 <- expert_data[,1]^2
-m1 <- glm(expert_data[,2] ~ expert_data[,1] + ex2)
-summary(m1)
+expert_data3_1 <- read_excel("Upper eyelid excel data points/3_1.xlsx")
+expert_data3_1 <- as.data.frame(expert_data3_1)
+
+expert_data4_1 <- read_excel("Upper eyelid excel data points/4_1.xlsx")
+expert_data4_1 <- as.data.frame(expert_data4_1)
+
+expert_data5_1 <- read_excel("Upper eyelid excel data points/5_1.xlsx")
+expert_data5_1 <- as.data.frame(expert_data5_1)
+
+expert_data6_1 <- read_excel("Upper eyelid excel data points/6_1.xlsx")
+expert_data6_1 <- as.data.frame(expert_data6_1)
+
+expert_data7_1 <- read_excel("Upper eyelid excel data points/7_1.xlsx")
+expert_data7_1 <- as.data.frame(expert_data7_1)
+
+expert_data8_1 <- read_excel("Upper eyelid excel data points/8_1.xlsx")
+expert_data8_1 <- as.data.frame(expert_data8_1)
+
+expert_data9_1 <- read_excel("Upper eyelid excel data points/9_1.xlsx")
+expert_data9_1 <- as.data.frame(expert_data9_1)
+
+expert_data10_1 <- read_excel("Upper eyelid excel data points/10_1.xlsx")
+expert_data10_1 <- as.data.frame(expert_data10_1)
+
+expert_data1_2 <- read_excel("Upper eyelid excel data points/1_2.xlsx")
+expert_data1_2 <- as.data.frame(expert_data1_2)
+
+expert_data2_2 <- read_excel("Upper eyelid excel data points/2_2.xlsx")
+expert_data2_2 <- as.data.frame(expert_data2_2)
+
+expert_data3_2 <- read_excel("Upper eyelid excel data points/3_2.xlsx")
+expert_data3_2 <- as.data.frame(expert_data3_2)
+
+expert_data4_2 <- read_excel("Upper eyelid excel data points/4_2.xlsx")
+expert_data4_2 <- as.data.frame(expert_data4_2)
+
+expert_data5_2 <- read_excel("Upper eyelid excel data points/5_2.xlsx")
+expert_data5_2 <- as.data.frame(expert_data5_2)
+
+expert_data6_2 <- read_excel("Upper eyelid excel data points/6_2.xlsx")
+expert_data6_2 <- as.data.frame(expert_data6_2)
+
+expert_data7_2 <- read_excel("Upper eyelid excel data points/7_2.xlsx")
+expert_data7_2 <- as.data.frame(expert_data7_2)
+
+expert_data8_2 <- read_excel("Upper eyelid excel data points/8_2.xlsx")
+expert_data8_2 <- as.data.frame(expert_data8_2)
+
+expert_data9_2 <- read_excel("Upper eyelid excel data points/9_2.xlsx")
+expert_data9_2 <- as.data.frame(expert_data9_2)
+
+expert_data10_2 <- read_excel("Upper eyelid excel data points/10_2.xlsx")
+expert_data10_2 <- as.data.frame(expert_data10_2)
+
+plot(expert_data1_1, xlim=c(0,1000), ylim=c(0,1000))
+plot(expert_data2_1, xlim=c(0,1000), ylim=c(0,1000))
+#Comparing expert1 pre and post op of expert1
+ks.test(expert_data1_1[,1], expert_data1_2[,1])
+
+#Comparing pre op expert1 and expert2
+ks.test(expert_data1_1[,1], expert_data2_1[,1])
+
+#Comparing pre op expert1 and expert4
+ks.test(expert_data1_1[,1], expert_data4_1[,1])
+plot(expert_data1_1, xlim=c(0,1000), ylim=c(0,1000))
+points(expert_data4_1, col="red")
+
+
+
+
+# Pre and Post-Op K-S test matrices 
+gs <- ls()[sapply(mget(ls(), .GlobalEnv), is.data.frame)]                   
+gs <- gs[3:22]    
+gs_pre <- gs[seq(1,19,2)]
+gs_pre <- gs_pre[c(1,3:10,2)]
+gs_post <- gs[seq(2,20,2)]
+gs_post <- gs_post[c(1,3:10,2)]
+
+# Comparing Pre and Post-Op eyelids for each expert
+pre_post_pvals <- rep(0,10)
+for (i in 1:10) {
+  pre_post_pvals[i] <- round(ks.test(get(gs_pre[i])[,1], get(gs_post[i])[,1])$p.value, 4)
+}
+pre_post_pvals
+
+pre_post <- rep(0,10)
+for(i in 1:10) {
+  if(pre_post_pvals[i]>0.05) 
+    pre_post[i] <- "same"
+  else pre_post[i] <- "different"
+}
+pre_post
+sum(pre_post=="different")/10
+#50% of eyelids are different pre and post surgery
+
+
+
+
+#Comparing all eyelids pre-op
+pvals_pre_op <- matrix(rep(0,10*10), 10, 10)
+for (i in 1:10) {
+  for (j in 1:10) {
+  pvals_pre_op[i,j] <- round(ks.test(get(gs_pre[i])[,1], get(gs_pre[j])[,1])$p.value, 4)
+  }
+}
+
+pvals_pre_op
+
+mx_pre_op <- matrix(rep(0,100),10,10)
+for (i in 1:10) {
+  for (j in 1:10) {
+    if (pvals_pre_op[i,j]>0.05)
+      mx_pre_op[i,j] <- "same" 
+    else mx_pre_op[i,j] <- "diff"
+  }
+}
+mx_pre_op
+
+mx_pre_op <- matrix(rep(0,100),10,10)
+for (i in 1:10) {
+  for (j in 1:10) {
+    if (pvals_pre_op[i,j]>0.05)
+      mx_pre_op[i,j] <- 1
+    else mx_pre_op[i,j] <- 0
+  }
+}
+mx_pre_op
+#1 means the eyes are "the same"
+#0 means the eyes are different
+library(Matrix)
+# Proportion of eyes that are "the same"
+(sum(triu(mx_pre_op)) - 10) / sum(1:9)
+# Proportion of eyes that are different 
+1 - ((sum(triu(mx_pre_op)) - 10) / sum(1:9))
+#So about 44% of the pre-op eyelids are different
+
+
+#Comparing all eyelids post-op
+pvals_post_op <- matrix(rep(0,10*10), 10, 10)
+for (i in 1:10) {
+  for (j in 1:10) {
+    pvals_post_op[i,j] <- round(ks.test(get(gs_post[i])[,1], get(gs_post[j])[,1])$p.value, 4)
+  }
+}
+
+pvals_post_op
+
+mx_post_op <- matrix(rep(0,100),10,10)
+for (i in 1:10) {
+  for (j in 1:10) {
+    if (pvals_post_op[i,j]>0.05)
+      mx_post_op[i,j] <- "same" 
+    else mx_post_op[i,j] <- "diff"
+  }
+}
+mx_post_op
+
+mx_post_op <- matrix(rep(0,100),10,10)
+for (i in 1:10) {
+  for (j in 1:10) {
+    if (pvals_post_op[i,j]>0.05)
+      mx_post_op[i,j] <- 1
+    else mx_post_op[i,j] <- 0
+  }
+}
+mx_post_op
+#1 means the eyes are "the same"
+#0 means the eyes are different
+library(Matrix)
+# Proportion of eyes that are "the same"
+(sum(triu(mx_post_op)) - 10) / sum(1:9)
+# Proportion of eyes that are different 
+1 - ((sum(triu(mx_post_op)) - 10) / sum(1:9))
+#So about 60% of the post-op eyelids are different
+
