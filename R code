@@ -1,93 +1,144 @@
+#Rootman Group 1 R code
+
 library(readxl)
+
+#Use cleaned data, there are 48 particpants
 a <- read_excel("rootman 1 winter 19 copy.xlsx")
 a <- as.data.frame(a)
 head(a) 
 
-
-#Remove columns 1:6
+#Remove columns 1:6 (ids, dates, etc.)
 b <- a[,-c(1:6)]
-
 
 #Change NAs to 0
 b[is.na(b)] <- 0
 b <- as.data.frame(b)
 
-#number of clicks
-(ncol(b) - rowSums(b==0))/2
+#Find number of clicks for each participant
+clicks <- (ncol(b) - rowSums(b==0))/2
 hist((ncol(b) - rowSums(b==0))/2, breaks=10)
-mean((ncol(b) - rowSums(b==0))/2)
 summary((ncol(b) - rowSums(b==0))/2)
 
-
-
+#Convert coordinates of clicks for each particpant into a 3D matrix
 #Create 1000x1000x59 array of 0s
 array0 <- array(rep(0, 1000*1000*nrow(b)), dim=c(1000,1000,nrow(b)))
+#For each click at a coordinate, make matrix value 1
 for (i in seq(1,57,by=2)) {
   for (j in 1:nrow(b)) {
   array0[as.numeric(b[j,i]), as.numeric(b[j,i+1]), j] <- 1
   }
 }
 
-# Add up all matricies in the array
+#Add up all matricies in the array
 final_array <- matrix(rep(0,1000*1000), 1000, 1000)
 for (i in 1:nrow(b)) {
   final_array <- final_array + array0[,,i]
 }
 
-
-#Average matrix
+#Create average matrix
 new_final_array <- final_array/nrow(b)
 
-
-#Plot points (it's upside down)
+#Plot points of average matrix (it's upside down)
 x <- 1:1000
 y <- 1:1000
 plot(x,y, type="n")
 #plot non 0s 
 points(which(new_final_array!=0,arr.ind = T), pch=21, cex=0.5, lwd=0.3)
 
-#Use library(Thermimage) to rotate data 
-#rotate180.matrix
 
-
-
-
-#Fitting a model to the data
-xcol <- which(new_final_array!=0,arr.ind = T)[,1]
-ycol <- which(new_final_array!=0,arr.ind = T)[,2]
-fit2 <- lm(ycol~poly(xcol,2,raw=TRUE))
-summary(fit2)
-plot(xcol, ycol)
-xx <- seq(72,758, length=608)
-points(xcol, predict(fit2, data.frame(x=xx)), col="red")
-fit2
-
-fit4 <- lm(ycol~poly(xcol,4,raw=TRUE))
-summary(fit4)
-plot(xcol, ycol)
-xx <- seq(72,758, length=608)
-points(xcol, predict(fit4, data.frame(x=xx)), col="red")
-fit4
-
-
-# K-S Tests
+#Observed y_values (from average particpant data) from polynomial model
 y_obs <- read.table("y_obs.csv")
 str(y_obs)
 y_obs <- y_obs[,1]
 
+#Expert y_values from polynomial model
 y_exp <- read.table("y_exp.csv")
 y_exp <- y_exp[,1]
+
+# K-S Test comparing average particpant and expert clicks
 ks.test(y_exp, y_obs, alternative = "two.sided")
 
+# K-S Test between expert and a particpant with bad clicks
 y_part5 <- read.table("y_obs_participant5.csv")
 y_part5 <- y_part5[,1]
 ks.test(y_exp, y_part5, alternative = "two.sided")
+xx <- seq(180,620, length=800)
+plot(xx, y_exp, xlim=c(0,1000),ylim=c(0,1000))
+points(xx, y_part5)
 
-plot.ecdf(y_exp)
-plot.ecdf(y_obs)
+# Read in data for below and above mean particpant clicks
+y_reduced_belowAVG <- read.table("y_reduced_belowAVG.csv")
+y_reduced_belowAVG <- y_reduced_belowAVG[,1]
+
+y_reduced_aboveAVG <- read.table("y_reduced_aboveAVG.csv")
+y_reduced_aboveAVG <- y_reduced_aboveAVG[,1]
+
+# K-S Test comparing particpants with below average and above average number of clicks 
+ks.test(y_reduced_belowAVG, y_reduced_aboveAVG)
+
+# K-S Test comparing particpants with below average number of clicks and the expert 
+ks.test(y_reduced_belowAVG, y_exp)
+
+# K-S Test comparing particpants with above average number of clicks and the expert 
+ks.test(y_reduced_aboveAVG, y_exp)
+
+# Read in data for participants with the bottom and top 25% of clicks
+bottom_25 <- read.table("bottom_25.csv")
+bottom_25 <- bottom_25[,1]
+
+top_25 <- read.table("top_25.csv")
+top_25 <- top_25[,1]
+
+# K-S Test comparing particpants with the bottom 25% and top 25% number of clicks
+ks.test(bottom_25, top_25)
+
+# K-S Test comparing particpants with the bottom 25% number of clicks and the expert
+ks.test(bottom_25, y_exp)
+
+# K-S Test comparing particpants with the top 25% number of clicks and the expert
+ks.test(y_exp, top_25)
+
+plot(xx, y_exp, xlim=c(100,700),ylim=c(200,500), pch=21, lwd=0.2, cex=0.3)
+points(xx, bottom_25, cex=0.3, col="blue", pch=21, lwd=0.1)
+points(xx, top_25, cex=0.3, col="yellow", pch=21, lwd=0.1)
+legend("bottomleft", c("expert", "bottom 25%", "top 25%"), lty=c(1,1,1), 
+       col=c("black", "blue", "yellow"), cex=0.8)
 
 
-#Expert
+#Perform K-S Tests to compare each participant's clicks with the expert clicks for pre-op eye 1
+
+# Read in 48 Particpants y values from matlab data
+y_values_eye1 <- read_excel("y_values_of_participants_eye1.xls", col_names = F)
+y_values_eye1 <- as.data.frame(y_values_eye1)
+
+# Find K-S Test p-values for each of the 48 particpants
+participant_pvals <- rep(0,48)
+for (i in 1:48) {
+  participant_pvals[i] <- round(ks.test(y_exp, y_values_eye1[,i])$p.value, 4)
+}
+participant_pvals
+
+# Determine result of test based on alpha = 0.05 
+result <- rep(0,48)
+for(i in 1:48) {
+  if(participant_pvals[i]<=0.05)
+    result[i] <- "reject"
+  else result[i] <- "fail to reject"
+}
+
+pval_results <- as.data.frame(cbind("p-values" = participant_pvals, "conclusion" = result, "clicks" = clicks))
+pval_results
+
+
+# Plot emperical CDFs 
+plot.ecdf(y_exp, main="Emperical CDF of Expert Points")
+plot.ecdf(y_obs, main="Emperical CDF of Average Participant Points")
+plot.ecdf(y_values_eye1[,14], main="Emperical CDF of Participant 14's Points") #good one
+plot.ecdf(y_values_eye1[,5], main="Emperical CDF of Participant 5's Points") #bad one
+
+
+# Read in expert data for each eye pre- and post-op
+# (1_1 is eye1 pre-op, 1_2 is eye1 post-op)
 expert_data1_1 <- read_excel("Upper eyelid excel data points/1_1.xlsx")
 expert_data1_1 <- as.data.frame(expert_data1_1)
 
@@ -148,37 +199,29 @@ expert_data9_2 <- as.data.frame(expert_data9_2)
 expert_data10_2 <- read_excel("Upper eyelid excel data points/10_2.xlsx")
 expert_data10_2 <- as.data.frame(expert_data10_2)
 
-plot(expert_data1_1, xlim=c(0,1000), ylim=c(0,1000))
-plot(expert_data2_1, xlim=c(0,1000), ylim=c(0,1000))
-#Comparing expert1 pre and post op of expert1
-ks.test(expert_data1_1[,1], expert_data1_2[,1])
-
-#Comparing pre op expert1 and expert2
-ks.test(expert_data1_1[,1], expert_data2_1[,1])
-
-#Comparing pre op expert1 and expert4
-ks.test(expert_data1_1[,1], expert_data4_1[,1])
-plot(expert_data1_1, xlim=c(0,1000), ylim=c(0,1000))
-points(expert_data4_1, col="red")
-
-
-
-
-# Pre and Post-Op K-S test matrices 
-gs <- ls()[sapply(mget(ls(), .GlobalEnv), is.data.frame)]                   
+# Set up data to be used in performing K-S tests 
+#Get names of data objects in environment
+gs <- ls()[sapply(mget(ls(), .GlobalEnv), is.data.frame)]       
+#Subset only the 20 expert data objects
 gs <- gs[3:22]    
+#Seperate into two vectors, one for pre-op expert data
 gs_pre <- gs[seq(1,19,2)]
+#Rearrange names so they are in numerical order
 gs_pre <- gs_pre[c(1,3:10,2)]
+#Seperate into post-op expert data
 gs_post <- gs[seq(2,20,2)]
+#Rearrange names so they are in numerical order
 gs_post <- gs_post[c(1,3:10,2)]
 
-# Comparing Pre and Post-Op eyelids for each expert
+# K-S Tests comparing Pre- and Post-Op eyelids for each expert 
+#(i.e. pre-op eye1 compared to post-op eye1, etc.)
 pre_post_pvals <- rep(0,10)
 for (i in 1:10) {
-  pre_post_pvals[i] <- round(ks.test(get(gs_pre[i])[,1], get(gs_post[i])[,1])$p.value, 4)
+  pre_post_pvals[i] <- suppressWarnings(round(ks.test(get(gs_pre[i])[,1], get(gs_post[i])[,1])$p.value, 4))
 }
 pre_post_pvals
 
+#Determine result based on alpha = 0.05
 pre_post <- rep(0,10)
 for(i in 1:10) {
   if(pre_post_pvals[i]>0.05) 
@@ -187,31 +230,21 @@ for(i in 1:10) {
 }
 pre_post
 sum(pre_post=="different")/10
-#50% of eyelids are different pre and post surgery
+#50% of eyelids are different pre- and post-op
 
 
-
-
-#Comparing all eyelids pre-op
+# K-S Tests comparing 10 expert ratings pre-op to see if eyelids are uniform across the sample of eyes
 pvals_pre_op <- matrix(rep(0,10*10), 10, 10)
 for (i in 1:10) {
   for (j in 1:10) {
   pvals_pre_op[i,j] <- round(ks.test(get(gs_pre[i])[,1], get(gs_pre[j])[,1])$p.value, 4)
   }
 }
-
+#Matrix of p-values
 pvals_pre_op
+write.csv(pvals_pre_op, "pvals_pre_op.csv")
 
-mx_pre_op <- matrix(rep(0,100),10,10)
-for (i in 1:10) {
-  for (j in 1:10) {
-    if (pvals_pre_op[i,j]>0.05)
-      mx_pre_op[i,j] <- "same" 
-    else mx_pre_op[i,j] <- "diff"
-  }
-}
-mx_pre_op
-
+#Use alpha = 0.05 to determine the result of the tests for each p-value
 mx_pre_op <- matrix(rep(0,100),10,10)
 for (i in 1:10) {
   for (j in 1:10) {
@@ -231,26 +264,18 @@ library(Matrix)
 #So about 44% of the pre-op eyelids are different
 
 
-#Comparing all eyelids post-op
+# K-S Tests comparing 10 expert ratings post-op to see if eyelids are uniform across the sample of eyes
 pvals_post_op <- matrix(rep(0,10*10), 10, 10)
 for (i in 1:10) {
   for (j in 1:10) {
     pvals_post_op[i,j] <- round(ks.test(get(gs_post[i])[,1], get(gs_post[j])[,1])$p.value, 4)
   }
 }
-
+#Matrix of p-values
 pvals_post_op
+write.csv(pvals_post_op, "pvals_post_op.csv")
 
-mx_post_op <- matrix(rep(0,100),10,10)
-for (i in 1:10) {
-  for (j in 1:10) {
-    if (pvals_post_op[i,j]>0.05)
-      mx_post_op[i,j] <- "same" 
-    else mx_post_op[i,j] <- "diff"
-  }
-}
-mx_post_op
-
+#Use alpha = 0.05 to determine the result of the tests for each p-value
 mx_post_op <- matrix(rep(0,100),10,10)
 for (i in 1:10) {
   for (j in 1:10) {
@@ -262,10 +287,8 @@ for (i in 1:10) {
 mx_post_op
 #1 means the eyes are "the same"
 #0 means the eyes are different
-library(Matrix)
 # Proportion of eyes that are "the same"
 (sum(triu(mx_post_op)) - 10) / sum(1:9)
 # Proportion of eyes that are different 
 1 - ((sum(triu(mx_post_op)) - 10) / sum(1:9))
 #So about 60% of the post-op eyelids are different
-
