@@ -2,7 +2,7 @@
 
 library(readxl)
 
-#Use cleaned data, there are 48 particpants
+#Use cleaned data (removed duplicates), there are 48 particpants
 a <- read_excel("rootman 1 winter 19 copy.xlsx")
 a <- as.data.frame(a)
 head(a) 
@@ -46,16 +46,16 @@ plot(x,y, type="n")
 points(which(new_final_array!=0,arr.ind = T), pch=21, cex=0.5, lwd=0.3)
 
 
-#Observed y_values (from average particpant data) from polynomial model
+#Read in observed y_values (from average particpant data) from polynomial model from matlab
 y_obs <- read.table("y_obs.csv")
 str(y_obs)
 y_obs <- y_obs[,1]
 
-#Expert y_values from polynomial model
+# Read in expert y_values from polynomial model from matlab
 y_exp <- read.table("y_exp.csv")
 y_exp <- y_exp[,1]
 
-# K-S Test comparing average particpant and expert clicks
+# K-S Test comparing average particpant and expert clicks (Figure 7)
 ks.test(y_exp, y_obs, alternative = "two.sided")
 
 # K-S Test between expert and a particpant with bad clicks
@@ -76,10 +76,10 @@ y_reduced_aboveAVG <- y_reduced_aboveAVG[,1]
 # K-S Test comparing particpants with below average and above average number of clicks 
 ks.test(y_reduced_belowAVG, y_reduced_aboveAVG)
 
-# K-S Test comparing particpants with below average number of clicks and the expert 
+# K-S Test comparing particpants with below average number of clicks and the expert (Figure 7)
 ks.test(y_reduced_belowAVG, y_exp)
 
-# K-S Test comparing particpants with above average number of clicks and the expert 
+# K-S Test comparing particpants with above average number of clicks and the expert (Figure 7)
 ks.test(y_reduced_aboveAVG, y_exp)
 
 # Read in data for participants with the bottom and top 25% of clicks
@@ -118,7 +118,7 @@ for (i in 1:48) {
 }
 participant_pvals
 
-# Determine result of test based on alpha = 0.05 
+# Determine result of test based on alpha = 0.05 (Figure 7)
 result <- rep(0,48)
 for(i in 1:48) {
   if(participant_pvals[i]<=0.05)
@@ -128,6 +128,7 @@ for(i in 1:48) {
 
 pval_results <- as.data.frame(cbind("p-values" = participant_pvals, "conclusion" = result, "clicks" = clicks))
 pval_results
+
 
 
 # Plot emperical CDFs 
@@ -213,27 +214,9 @@ gs_post <- gs[seq(2,20,2)]
 #Rearrange names so they are in numerical order
 gs_post <- gs_post[c(1,3:10,2)]
 
-# K-S Tests comparing Pre- and Post-Op eyelids for each expert 
-#(i.e. pre-op eye1 compared to post-op eye1, etc.)
-pre_post_pvals <- rep(0,10)
-for (i in 1:10) {
-  pre_post_pvals[i] <- suppressWarnings(round(ks.test(get(gs_pre[i])[,1], get(gs_post[i])[,1])$p.value, 4))
-}
-pre_post_pvals
-
-#Determine result based on alpha = 0.05
-pre_post <- rep(0,10)
-for(i in 1:10) {
-  if(pre_post_pvals[i]>0.05) 
-    pre_post[i] <- "same"
-  else pre_post[i] <- "different"
-}
-pre_post
-sum(pre_post=="different")/10
-#50% of eyelids are different pre- and post-op
-
 
 # K-S Tests comparing 10 expert ratings pre-op to see if eyelids are uniform across the sample of eyes
+# (Figure 8)
 pvals_pre_op <- matrix(rep(0,10*10), 10, 10)
 for (i in 1:10) {
   for (j in 1:10) {
@@ -265,6 +248,7 @@ library(Matrix)
 
 
 # K-S Tests comparing 10 expert ratings post-op to see if eyelids are uniform across the sample of eyes
+# (Figure 9)
 pvals_post_op <- matrix(rep(0,10*10), 10, 10)
 for (i in 1:10) {
   for (j in 1:10) {
@@ -292,3 +276,23 @@ mx_post_op
 # Proportion of eyes that are different 
 1 - ((sum(triu(mx_post_op)) - 10) / sum(1:9))
 #So about 60% of the post-op eyelids are different
+
+
+# K-S Tests comparing Pre- and Post-Op eyelids for each expert (Figure 10)
+#(i.e. pre-op eye1 compared to post-op eye1, etc.)
+pre_post_pvals <- rep(0,10)
+for (i in 1:10) {
+  pre_post_pvals[i] <- suppressWarnings(round(ks.test(get(gs_pre[i])[,1], get(gs_post[i])[,1])$p.value, 4))
+}
+pre_post_pvals
+
+#Determine result based on alpha = 0.05
+pre_post <- rep(0,10)
+for(i in 1:10) {
+  if(pre_post_pvals[i]>0.05) 
+    pre_post[i] <- "same"
+  else pre_post[i] <- "different"
+}
+pre_post
+sum(pre_post=="different")/10
+#50% of eyelids are different pre- and post-op
